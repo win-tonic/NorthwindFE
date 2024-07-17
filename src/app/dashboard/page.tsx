@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { IP, SESSION_ID } from "./_utils/constants";
 import { Query, SQLMetrics, Worker } from "./_utils/types";
+import { useQueryContext } from "../_components/Context";
 
 const DashboardPage = () => {
-    const [activityLog, setActivityLog] = useState<Query[]>([]);
+    const { queries } = useQueryContext();
     const [workerData, setWorkerData] = useState<Worker>({ countryCode: "", iata: "" });
     const [sqlMetrics, setSqlMetrics] = useState<SQLMetrics>({
         queryCount: 0,
@@ -21,24 +22,13 @@ const DashboardPage = () => {
         return data;
     }
 
-    async function fetchSqlMetrics() {
-        const response = await fetch(`https://northwind-iaum.onrender.com/responseLogs`, {
-            headers: { "session-id": SESSION_ID }
-        });
-        const data = await response.json();
-        return data;
-    }
-
     async function fetchData() {
         try {
-            const [workerData, sqlMetrics] = await Promise.all([
+            const [workerData] = await Promise.all([
                 fetchWorkerData(),
-                fetchSqlMetrics()
             ]);
 
             setWorkerData(workerData);
-            setSqlMetrics(sqlMetrics);
-            setActivityLog(sqlMetrics.activityLog);
         } catch (error) {
             console.error(error);
         }
@@ -47,6 +37,18 @@ const DashboardPage = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        const totalQueries = queries.length;
+        const totalResults = queries.reduce((acc, query) => acc + query.resultCount, 0);
+        setSqlMetrics({
+            queryCount: totalQueries,
+            resultCount: totalResults,
+            selectCount: queries.filter(query => query.query.includes("select")).length,
+            selectWhereCount: queries.filter(query => query.query.includes("select") && query.query.includes("where")).length,
+            selectLeftJoinCount: queries.filter(query => query.query.includes("select") && query.query.includes("left join")).length,
+        });
+    }, [queries]);
 
     return (
         <div>
@@ -65,15 +67,13 @@ const DashboardPage = () => {
             </div>
             <div>
                 <h2>Activity log</h2>
-                {activityLog.length === 0 ? (
-                    <p>Explore the app and see metrics here</p>
-                ) : (
-                    activityLog.map((log, index) => (
-                        <p key={index}>
-                            {log.queriedAt} - {log.Query}
-                        </p>
-                    ))
-                )}
+                <ul>
+                    {queries.map((query, index) => (
+                        <li key={index}>
+                            {query.query} ({query.resultCount})
+                        </li>
+                    ))}
+                </ul>
             </div>
         </div>
     );

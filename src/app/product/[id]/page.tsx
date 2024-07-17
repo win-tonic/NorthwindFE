@@ -3,11 +3,13 @@
 import { Product } from "@/types/types";
 import { useEffect, useState } from "react";
 import s from "./styles.module.css";
+import { useQueryContext } from "../../_components/Context";
 
 const ProductDetailsPage = ({ params }: { params: { id: number } }) => {
     const [product, setProduct] = useState<Product>();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<boolean>(false);
+    const { addQuery } = useQueryContext();
 
     const fetchProductDetails = async () => {
         setIsLoading(false);
@@ -15,9 +17,10 @@ const ProductDetailsPage = ({ params }: { params: { id: number } }) => {
             const productRes = await fetch(
                 `https://northwind-iaum.onrender.com/products?id=${params.id}`
             );
-            const data = (await productRes.json()) as { data: { result: Product[] } };
+            const data = (await productRes.json()) as {data: { query: string; result: Product[] }};
             if (data.data && data.data.result.length > 0) {
                 setProduct(data.data.result[0]);
+                addQuery(data.data.query, data.data.result.length);
             }
         } catch (error) {
             setError(true);

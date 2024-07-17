@@ -3,6 +3,7 @@
 import { Product } from "@/types/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useQueryContext } from "../_components/Context";
 
 import { useEffect, useState } from "react";
 
@@ -10,6 +11,7 @@ const itemsPerPage = 15;
 
 export default function ProductsPage() {
     const searchParams = useSearchParams();
+    const { addQuery } = useQueryContext();
 
     const [page, setPage] = useState<number>(+searchParams.get("page")!);
     const [products, setProducts] = useState<{
@@ -38,6 +40,7 @@ export default function ProductsPage() {
             );
             const data = await response.json();
             setProducts(data);
+            addQuery(data.data.query, data.data.result.length);
         } catch (error) {
             console.error("Error fetching products data:", error);
         }
